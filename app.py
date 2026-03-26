@@ -14,9 +14,10 @@ def load_data():
 def build_hashmap(df):
     hashmap = HashMap()
 
+    # We iterate through the rows of the dataframe, storing the most relevant information
     for row in df.itertuples(index=False):
-        track = row.track_name
-        artists = pre.split_artists(row.artists)
+        track = row.track_name 
+        artists = pre.split_artists(row.artists) # To deal with multiple artists for one track
 
         value = {
             "track": track,
@@ -29,7 +30,7 @@ def build_hashmap(df):
             "loudness": getattr(row, "loudness", None)
         }
 
-        for artist in artists:
+        for artist in artists: # If we have multiple artists, we make sure to create multiple keys, keeping the track part of the key constant
             key = pre.create_key(artist, track)
             hashmap.insert(key, value)
 
@@ -42,7 +43,7 @@ hashmap = build_hashmap(df)
 # App Dashboard
 st.title("Spotify Music Hashing System")
 
-st.sidebar.header("Options")
+st.sidebar.header("Options") # This shows us what we can do with this database on the sidebar
 option = st.sidebar.radio(
     "Choose Operation",
     ["Search Song", "Count Songs by Artist", "View Hash Stats"]
@@ -52,6 +53,7 @@ option = st.sidebar.radio(
 if option == "Search Song":
     st.header("Search Song")
 
+    # No matter what people input, we make sure that it has the same consistent formatting as the data making it easier for the user
     artist = st.text_input("Artist Name")
     track = st.text_input("Track Name")
     artist = pre.clean_text(artist)
@@ -60,7 +62,7 @@ if option == "Search Song":
 
     if st.button("Search"):
         key = pre.create_key(artist.lower(), track.lower())
-
+        # Calculating the Lookup time for a search
         start = time.perf_counter()
         result = hashmap.search(key)
         end = time.perf_counter()
@@ -81,11 +83,11 @@ elif option == "Count Songs by Artist":
     artist = st.text_input("Artist Name")
 
     if st.button("Count"):
-        artist = artist.lower()
+        artist = pre.clean_text(artist)
         count = 0
 
         for item in hashmap.table:
-            if item and item != ("__DELETED__", None):
+            if item and item != ("__DELETED__", None): # Checks to see if we're not looking at a recently deleted or empty node
                 if artist in item[0]:
                     count += 1
 
@@ -97,10 +99,8 @@ elif option == "View Hash Stats":
     st.header("Hash Table Statistics")
 
     stats = hashmap.get_stats()
-
-    st.metric("Load Factor", f"{stats['load_factor']:.4f}")
-    st.metric("Avg Insert Probes", f"{stats['avg_insert_probes']:.4f}")
-    st.metric("Avg Search Probes", f"{stats['avg_search_probes']:.4f}")
+    
+    # Helps visualize how efficient our hash table implementation really is.
+    st.metric("Load Factor", f"{stats['load_factor']:.8f}")
+    st.metric("Avg Insert Probes", f"{stats['avg_insert_probes']:.8f}")
     st.metric("Total Collisions", stats['collisions'])
-
-    st.info("Lower probe counts = more efficient hashing")
